@@ -1,6 +1,7 @@
 package com.example.appnotes
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import kotlin.math.sin
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Spacer
 
 @Composable
 fun CreateEditApp() {
@@ -146,14 +148,37 @@ fun ConvertToTaskCard() {
                 Text("Tarea", fontWeight = FontWeight.Bold)
                 Text("Convertir en tarea", color = Color.Gray, fontSize = 13.sp)
             }
+
             Switch(checked = isTask, onCheckedChange = { isTask = it })
         }
     }
 }
 
 @Composable
-fun RemindersCard(){
-
+fun RemindersCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Recordatorios", fontWeight = FontWeight.Bold)
+                Text(
+                    "+ Agregar recordatorio",
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable {  }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("No se han añadido recordatorios", color = Color.Gray, fontSize = 13.sp)
+        }
+    }
 }
 
 @Composable
