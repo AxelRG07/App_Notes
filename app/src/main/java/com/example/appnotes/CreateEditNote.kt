@@ -182,10 +182,31 @@ fun RemindersCard() {
 }
 
 @Composable
-fun AttachmentsCard(){
-
+fun AttachmentsCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Archivos adjuntos", fontWeight = FontWeight.Bold)
+                Text(
+                    "+ Agregar archivo ",
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("No hay archivos adjuntos añadidos", color = Color.Gray, fontSize = 13.sp)
+        }
+    }
 }
-
 
 @Preview
 @Composable
