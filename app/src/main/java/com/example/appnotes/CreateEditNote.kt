@@ -197,7 +197,7 @@ fun AttachmentsCard() {
             ) {
                 Text("Archivos adjuntos", fontWeight = FontWeight.Bold)
                 Text(
-                    "+ Agregar archivo ",
+                    "+ Agregar archivo",
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { }
                 )
