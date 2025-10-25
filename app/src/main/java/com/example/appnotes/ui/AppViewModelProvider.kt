@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.appnotes.NotesApplication
 import com.example.appnotes.ui.home.HomeViewModel
+import com.example.appnotes.ui.note.NoteEntryViewModel
 
 object HomeViewModelProvider {
     val Factory = viewModelFactory {
@@ -12,6 +13,16 @@ object HomeViewModelProvider {
             val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as NotesApplication
             val repository = application.container.notesRepository
             HomeViewModel(repository)
+        }
+    }
+}
+
+object NoteEntryViewModelProvider {
+    val Factory = viewModelFactory {
+        initializer {
+            val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as NotesApplication
+            val repository = application.container.notesRepository
+            NoteEntryViewModel(repository)
         }
     }
 }
