@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -109,7 +110,9 @@ fun NotesTopBar(
             IconButton(onClick = onNavigateUp) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
             }
-        }
+        },
+        modifier = Modifier
+            .statusBarsPadding()
     )
 }
 
@@ -153,43 +156,49 @@ fun NoteEntryForm (
             val date = remember { mutableStateOf("") }
             val time = remember { mutableStateOf("") }
 
-            Button(
-                onClick = {
-                    val datePicker = DatePickerDialog(
-                        context,
-                        { _, year, month, day ->
-                            calendar.set(year, month, day)
-                            date.value = "$day/${month + 1}/$year"
-                            onValueChange(noteUiState.copy(dueDateTime = calendar.timeInMillis))
-                        },
-                        calendar.get(Calendar.YEAR),
-                        calendar.get(Calendar.MONTH),
-                        calendar.get(Calendar.DAY_OF_MONTH)
-                    )
-                    datePicker.show()
-                }
+            Row (
+                modifier = Modifier.fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceAround
             ) {
-                Text(if (date.value.isEmpty()) "Seleccionar fecha" else "Fecha: ${date.value}")
-            }
+                Button(
+                    onClick = {
+                        val datePicker = DatePickerDialog(
+                            context,
+                            { _, year, month, day ->
+                                calendar.set(year, month, day)
+                                date.value = "$day/${month + 1}/$year"
+                                onValueChange(noteUiState.copy(dueDateTime = calendar.timeInMillis))
+                            },
+                            calendar.get(Calendar.YEAR),
+                            calendar.get(Calendar.MONTH),
+                            calendar.get(Calendar.DAY_OF_MONTH)
+                        )
+                        datePicker.show()
+                    }
+                ) {
+                    Text(if (date.value.isEmpty()) "Seleccionar fecha" else "Fecha: ${date.value}")
+                }
 
-            Button(
-                onClick = {
-                    val timePicker = TimePickerDialog(
-                        context,
-                        { _, hour, minute ->
-                            calendar.set(Calendar.HOUR_OF_DAY, hour)
-                            calendar.set(Calendar.MINUTE, minute)
-                            time.value = "%02d:%02d".format(hour, minute)
-                            onValueChange(noteUiState.copy(dueDateTime = calendar.timeInMillis))
-                        },
-                        calendar.get(Calendar.HOUR_OF_DAY),
-                        calendar.get(Calendar.MINUTE),
-                        true
-                    )
-                    timePicker.show()
+                Button(
+                    onClick = {
+                        val timePicker = TimePickerDialog(
+                            context,
+                            { _, hour, minute ->
+                                calendar.set(Calendar.HOUR_OF_DAY, hour)
+                                calendar.set(Calendar.MINUTE, minute)
+                                time.value = "%02d:%02d".format(hour, minute)
+                                onValueChange(noteUiState.copy(dueDateTime = calendar.timeInMillis))
+                            },
+                            calendar.get(Calendar.HOUR_OF_DAY),
+                            calendar.get(Calendar.MINUTE),
+                            true
+                        )
+                        timePicker.show()
+                    }
+                ) {
+                    Text(if (time.value.isEmpty()) "Seleccionar hora" else "Hora: ${time.value}")
                 }
-            ) {
-                Text(if (time.value.isEmpty()) "Seleccionar hora" else "Hora: ${time.value}")
             }
         }
     }
@@ -272,7 +281,7 @@ fun DescriptionCard(
             )
             OutlinedTextField(
                 value = value,
-                onValueChange = { onValueChange(noteUiState.copy(title = it)) },
+                onValueChange = { onValueChange(noteUiState.copy(description = it)) },
                 placeholder = { Text(placeholder) },
                 modifier = Modifier
                     .fillMaxWidth()
