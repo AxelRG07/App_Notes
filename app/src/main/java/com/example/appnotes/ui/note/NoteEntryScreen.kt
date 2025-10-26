@@ -2,6 +2,11 @@ package com.example.appnotes.ui.note
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.net.Uri
+import androidx.activity.compose.R
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,12 +16,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,17 +48,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberAsyncImagePainter
+import com.example.appnotes.data.Attachment
 import com.example.appnotes.ui.NoteEntryViewModelProvider
 import java.util.Calendar
 
@@ -62,6 +78,8 @@ fun NoteEntryScreen (
 {
     val noteUiState by viewModel.noteUiState.collectAsState()
     val context = LocalContext.current
+    var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
+
 
     LaunchedEffect(
         noteId
@@ -83,7 +101,7 @@ fun NoteEntryScreen (
                     icon = { Icon(Icons.Default.Check, contentDescription = "Guardar") },
                     onClick = {
                         if (viewModel.isValidNote()) {
-                            viewModel.saveNote()
+                            viewModel.saveNote(attachments)
                             navigateBack()
                         }
                     }
@@ -92,6 +110,8 @@ fun NoteEntryScreen (
         ) { innerPadding ->
             NoteEntryForm(
                 noteUiState,
+                attachments = attachments,
+                onAttachmentsChange = {attachments = it},
                 onValueChange = viewModel::updateUiState,
                 modifier = Modifier.padding(innerPadding)
             )
@@ -120,7 +140,10 @@ fun NotesTopBar(
 @Composable
 fun NoteEntryForm (
     noteUiState: NoteUiState,
+    attachments: List<Attachment>,
+    onAttachmentsChange: (List<Attachment>) -> Unit,
     onValueChange: (NoteUiState) -> Unit,
+
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -201,8 +224,80 @@ fun NoteEntryForm (
                 }
             }
         }
+
+        val launcher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            uri?.let {
+                val mime = context.contentResolver.getType(uri) ?: ""
+                val type = when {
+                    mime.startsWith("image/") -> "image"
+                    mime.startsWith("video/") -> "video"
+                    mime.startsWith("audio/") -> "audio"
+                    else -> "file"
+                }
+                val newAttachment = Attachment(
+                    noteId = 0, // luego se actualiza tras guardar la nota
+                    uri = uri.toString(),
+                    type = type
+                )
+                onAttachmentsChange(attachments + newAttachment)
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { launcher.launch("*/*") }) {
+            Text("📎 Agregar archivo")
+        }
+
+        if (attachments.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Archivos adjuntos:", style = MaterialTheme.typography.titleMedium)
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                items(attachments) { att ->
+                    when (att.type) {
+                        "image" -> {
+                            Image(
+                                painter = rememberAsyncImagePainter(att.uri),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        "video" -> {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(60.dp)
+                            )
+                        }
+                        "audio" -> {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(60.dp)
+                            )
+                        }
+                        else -> {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(60.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
+
 
 @Composable
 fun TitleCard(

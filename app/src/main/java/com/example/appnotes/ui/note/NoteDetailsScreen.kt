@@ -1,8 +1,10 @@
 package com.example.appnotes.ui.note
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -12,9 +14,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.appnotes.data.NoteWithDetails
 import com.example.appnotes.ui.NoteDetailsViewModelProvider
 import com.example.appnotes.ui.navigation.HomeDestination
@@ -156,7 +161,29 @@ fun NoteDetailContent(
         if (note.attachments.isNotEmpty()) {
             item { Text("📎 Archivos adjuntos:", style = MaterialTheme.typography.titleMedium) }
             items(note.attachments) { att ->
-                Text("- ${att.type.uppercase()}: ${att.caption ?: att.uri}")
+                when (att.type) {
+                    "image" -> {
+                        Image(
+                            painter = rememberAsyncImagePainter(att.uri),
+                            contentDescription = att.caption ?: "imagen adjunta",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    "video" -> {
+                        Text("🎞️ Video adjunto: ${att.caption ?: att.uri}")
+                    }
+                    "audio" -> {
+                        Text("🎧 Audio adjunto: ${att.caption ?: att.uri}")
+                    }
+                    else -> {
+                        Text("📄 Archivo: ${att.caption ?: att.uri}")
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

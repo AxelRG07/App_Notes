@@ -2,6 +2,7 @@ package com.example.appnotes.ui.note
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.appnotes.data.Attachment
 import com.example.appnotes.data.Note
 import com.example.appnotes.data.NotesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +40,7 @@ class NoteEntryViewModel(private val notesRepository: NotesRepository) : ViewMod
         _noteUiState.value = newState
     }
 
-    fun saveNote() {
+    fun saveNote(attachments: List<Attachment> = emptyList()) {
         viewModelScope.launch {
             val note = Note(
                 id = noteUiState.value.id,
@@ -50,10 +51,15 @@ class NoteEntryViewModel(private val notesRepository: NotesRepository) : ViewMod
                 isCompleted = noteUiState.value.completed,
                 createdAt = noteUiState.value.createdAt
             )
-            if (isEditMode) {
+            val noteId = if (isEditMode) {
                 notesRepository.updateNote(note)
+                note.id.toLong()
             } else {
                 notesRepository.insertNote(note)
+            }
+
+            attachments.forEach { att ->
+                notesRepository.addAttachment(att.copy(noteId = noteId.toInt()))
             }
         }
     }
