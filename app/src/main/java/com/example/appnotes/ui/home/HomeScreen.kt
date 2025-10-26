@@ -46,6 +46,7 @@ import androidx.navigation.NavController
 import com.example.appnotes.R
 import com.example.appnotes.data.NoteWithDetails
 import com.example.appnotes.ui.HomeViewModelProvider
+import com.example.appnotes.ui.navigation.NoteDetailDestination
 import com.example.appnotes.ui.navigation.NoteEditDestination
 import com.example.appnotes.ui.navigation.NoteEntryDestination
 import java.text.SimpleDateFormat
@@ -98,7 +99,7 @@ fun HomeScreen(
                     matchesSearch && matchesFilter
                 },
                 onClickNote = { noteId ->
-                    navController.navigate("${NoteEditDestination.route}/$noteId")
+                    navController.navigate("${NoteDetailDestination.route}/$noteId")
                 }
             )
         }

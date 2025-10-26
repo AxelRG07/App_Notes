@@ -18,17 +18,19 @@ class NoteEntryViewModel(private val notesRepository: NotesRepository) : ViewMod
     fun loadNote(noteId: Int) {
         viewModelScope.launch {
             notesRepository.getNote(noteId).collect { noteWithDetails ->
-                val note = noteWithDetails.note
-                _noteUiState.value = NoteUiState(
-                    id = note.id,
-                    title = note.title,
-                    description = note.description,
-                    isTask = note.isTask,
-                    dueDateTime = note.dueDateTime,
-                    completed = note.isCompleted,
-                    createdAt = note.createdAt
-                )
-                isEditMode = true
+                noteWithDetails?.let { safeNoteWithDetais ->
+                    val note = noteWithDetails.note
+                    _noteUiState.value = NoteUiState(
+                        id = note.id,
+                        title = note.title,
+                        description = note.description,
+                        isTask = note.isTask,
+                        dueDateTime = note.dueDateTime,
+                        completed = note.isCompleted,
+                        createdAt = note.createdAt
+                    )
+                    isEditMode = true
+                }
             }
         }
     }

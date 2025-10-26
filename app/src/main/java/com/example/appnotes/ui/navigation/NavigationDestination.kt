@@ -19,3 +19,8 @@ object NoteEditDestination : NavigationDestination {
     override val route = "note_edit"
     override val titleRes = "Edit Note"
 }
+
+object NoteDetailDestination : NavigationDestination {
+    override val route = "note_detail"
+    override val titleRes = "Note Details"
+}

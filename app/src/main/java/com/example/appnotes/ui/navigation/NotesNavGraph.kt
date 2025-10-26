@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.appnotes.ui.home.HomeScreen
+import com.example.appnotes.ui.note.NoteDetailScreen
 import com.example.appnotes.ui.note.NoteEntryScreen
 
 @Composable
@@ -40,6 +41,19 @@ fun NotesNavGraph(
                 noteId = noteId,
                 navigateBack = { navController.navigateUp() }
             )
+        }
+
+        composable(
+            route = "${NoteDetailDestination.route}/{noteId}",
+            arguments = listOf(navArgument("noteId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getInt("noteId")
+            if (noteId != null) {
+                NoteDetailScreen(
+                    noteId = noteId,
+                    navController = navController
+                )
+            }
         }
     }
 }

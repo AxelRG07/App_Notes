@@ -6,7 +6,7 @@ class OfflineNotesRepository (private val noteDao: NoteDao) : NotesRepository {
     override fun getAllNotes(): Flow<List<NoteWithDetails>> =
         noteDao.getAllNotesWithDetails()
 
-    override fun getNote(id: Int): Flow<NoteWithDetails> =
+    override fun getNote(id: Int): Flow<NoteWithDetails?> =
         noteDao.getNoteWithDetails(id)
 
     override suspend fun insertNote(note: Note): Long =
