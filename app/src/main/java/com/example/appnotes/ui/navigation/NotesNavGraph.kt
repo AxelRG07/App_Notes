@@ -1,5 +1,6 @@
 package com.example.appnotes.ui.navigation
 
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -13,6 +14,7 @@ import com.example.appnotes.ui.note.NoteEntryScreen
 
 @Composable
 fun NotesNavGraph(
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -23,12 +25,12 @@ fun NotesNavGraph(
         modifier = modifier
     ) {
         composable(route = HomeDestination.route) {
-            HomeScreen(navController = navController)
+            HomeScreen(navController = navController, windowSizeClass = windowSizeClass)
         }
 
         composable(route = NoteEntryDestination.route) {
             NoteEntryScreen(
-                navigateBack = { navController.navigateUp() }
+                navigateBack = { navController.navigateUp() },
             )
         }
 
@@ -51,7 +53,7 @@ fun NotesNavGraph(
             if (noteId != null) {
                 NoteDetailScreen(
                     noteId = noteId,
-                    navController = navController
+                    navController = navController,
                 )
             }
         }

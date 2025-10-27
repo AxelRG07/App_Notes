@@ -29,6 +29,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,13 +48,15 @@ import com.example.appnotes.ui.navigation.NotesNavGraph
 import com.example.appnotes.ui.theme.AppNotesTheme
 import kotlin.math.round
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             AppNotesTheme {
-                NotesNavGraph()
+                val windowSizeClass = calculateWindowSizeClass(activity = this)
+                NotesNavGraph(windowSizeClass = windowSizeClass)
             }
         }
     }
