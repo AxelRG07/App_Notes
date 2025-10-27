@@ -16,10 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.appnotes.R
 import com.example.appnotes.data.NoteWithDetails
 import com.example.appnotes.ui.NoteDetailsViewModelProvider
 import com.example.appnotes.ui.navigation.HomeDestination
@@ -48,17 +51,17 @@ fun NoteDetailScreen(
                 title = { NoteEditDestination.titleRes },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.btn_volver))
                     }
                 },
                 actions = {
                     IconButton(onClick = { noteWithDetails?.note?.let {
                         navController.navigate("${NoteEditDestination.route}/${it.id}")
                     } }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar")
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.btn_editar))
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.btn_eliminar))
                     }
                 }
             )
@@ -67,7 +70,9 @@ fun NoteDetailScreen(
             noteWithDetails?.let {
                 ExtendedFloatingActionButton(
                     onClick = { viewModel.toggleCompleted() },
-                    text = { Text(if (it.note.isCompleted) "Marcar pendiente" else "Marcar completada") },
+                    text = { Text(if (it.note.isCompleted) stringResource(R.string.marcar_pendiente) else stringResource(
+                        R.string.marcar_completada
+                    )) },
                     icon = { Icon(Icons.Default.FavoriteBorder, contentDescription = null) }
                 )
             }
@@ -90,8 +95,8 @@ fun NoteDetailScreen(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Confirmar eliminación") },
-                text = { Text("¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.") },
+                title = { Text(stringResource(R.string.confirmar_eliminar)) },
+                text = { Text(stringResource(R.string.eliminar_definitivo)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -101,12 +106,12 @@ fun NoteDetailScreen(
                             }
                         }
                     ) {
-                        Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.btn_eliminar), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancelar")
+                        Text(stringResource(R.string.btn_cancelar))
                     }
                 }
             )
@@ -120,6 +125,7 @@ fun NoteDetailContent(
     modifier: Modifier = Modifier
 ) {
     val sdf = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = modifier
@@ -138,13 +144,16 @@ fun NoteDetailContent(
             )
             if (note.note.isTask && note.note.dueDateTime != null) {
                 Text(
-                    text = "📅 Fecha límite: ${sdf.format(Date(note.note.dueDateTime))}",
+                    text = stringResource(
+                        R.string.fecha_limite,
+                        sdf.format(Date(note.note.dueDateTime))
+                    ),
                     style = MaterialTheme.typography.labelLarge
                 )
             }
             if (note.note.isCompleted) {
                 Text(
-                    text = "✅ Completada",
+                    text = stringResource(R.string.tarea_completada),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -152,14 +161,14 @@ fun NoteDetailContent(
         }
 
         if (note.reminders.isNotEmpty()) {
-            item { Text("⏰ Recordatorios:", style = MaterialTheme.typography.titleMedium) }
+            item { Text(stringResource(R.string.recordatorios), style = MaterialTheme.typography.titleMedium) }
             items(note.reminders) { reminder ->
                 Text("- ${sdf.format(Date(reminder.remindAt))}")
             }
         }
 
         if (note.attachments.isNotEmpty()) {
-            item { Text("📎 Archivos adjuntos:", style = MaterialTheme.typography.titleMedium) }
+            item { Text(stringResource(R.string.archivos_adjuntos), style = MaterialTheme.typography.titleMedium) }
             items(note.attachments) { att ->
                 when (att.type) {
                     "image" -> {
@@ -174,13 +183,13 @@ fun NoteDetailContent(
                         )
                     }
                     "video" -> {
-                        Text("🎞️ Video adjunto: ${att.caption ?: att.uri}")
+                        Text(context.getString(R.string.video_adjunto, att.caption ?: att.uri))
                     }
                     "audio" -> {
-                        Text("🎧 Audio adjunto: ${att.caption ?: att.uri}")
+                        Text(context.getString(R.string.audio_adjunto, att.caption ?: att.uri))
                     }
                     else -> {
-                        Text("📄 Archivo: ${att.caption ?: att.uri}")
+                        Text(context.getString(R.string.archivo, att.caption ?: att.uri))
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))

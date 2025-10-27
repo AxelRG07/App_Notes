@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -116,20 +117,10 @@ fun NotesTopBar() {
             .fillMaxWidth()
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(R.drawable.ic_notes_menu),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp)
-            )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("My Notes", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
         }
 
-        Icon(
-            painter = painterResource(R.drawable.ic_notes_conf),
-            contentDescription = null,
-            modifier = Modifier.size(28.dp)
-        )
     }
 }
 
@@ -141,7 +132,7 @@ fun SearchBar(
     TextField(
         value = searchQuery,
         onValueChange = onValueChange,
-        placeholder = { Text("\uD83D\uDD0D  Buscar...") },
+        placeholder = { Text(stringResource(R.string.placeholder_buscar)) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
@@ -162,7 +153,8 @@ fun FilterBar(
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceAround,
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier
+                .padding(12.dp)
                 .fillMaxWidth()
         ) {
             listOf("All", "Notes", "Tasks").forEach { filter ->
@@ -171,7 +163,9 @@ fun FilterBar(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            if (filter == selectedFilter) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            if (filter == selectedFilter) MaterialTheme.colorScheme.primary.copy(
+                                alpha = 0.2f
+                            )
                             else Color.Transparent
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -202,7 +196,7 @@ fun NotesList(
 ) {
     if (notes.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No hay notas registradas")
+            Text(stringResource(R.string.notas_vacias))
         }
     } else {
         LazyColumn(

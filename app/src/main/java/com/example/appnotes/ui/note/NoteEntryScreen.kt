@@ -3,7 +3,7 @@ package com.example.appnotes.ui.note
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.net.Uri
-import androidx.activity.compose.R
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -64,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import com.example.appnotes.R
 import com.example.appnotes.data.Attachment
 import com.example.appnotes.ui.NoteEntryViewModelProvider
 import java.util.Calendar
@@ -97,8 +99,8 @@ fun NoteEntryScreen (
             },
             floatingActionButton = {
                 ExtendedFloatingActionButton(
-                    text = { Text( "Guardar" ) },
-                    icon = { Icon(Icons.Default.Check, contentDescription = "Guardar") },
+                    text = { Text(stringResource(R.string.btn_guardar)) },
+                    icon = { Icon(Icons.Default.Check, contentDescription = stringResource(R.string.btn_guardar)) },
                     onClick = {
                         if (viewModel.isValidNote()) {
                             viewModel.saveNote(attachments)
@@ -125,10 +127,10 @@ fun NotesTopBar(
     onNavigateUp: () -> Unit
 ) {
     TopAppBar(
-        title = { Text( if(noteId == null) "Nueva nota" else "Editar nota")  },
+        title = { Text( if(noteId == null) stringResource(R.string.nueva_nota) else stringResource(R.string.editar_nota))  },
         navigationIcon = {
             IconButton(onClick = onNavigateUp) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.btn_volver))
             }
         },
         modifier = Modifier
@@ -156,8 +158,8 @@ fun NoteEntryForm (
             noteUiState.title,
             onValueChange,
             noteUiState,
-            "Titulo",
-            "Escribe el título de la nota",
+            stringResource(R.string.titulo_nota),
+            stringResource(R.string.titulo_placeholder),
             lines = 1,
             single = true,
             modifier = Modifier
@@ -167,8 +169,8 @@ fun NoteEntryForm (
             noteUiState.description,
             onValueChange,
             noteUiState,
-            "Descripción",
-            "Escribe la descripción de la nota",
+            stringResource(R.string.descripcion_nota),
+            stringResource(R.string.descripcion_placeholder),
             lines = 5,
             single = false,
         )
@@ -180,7 +182,8 @@ fun NoteEntryForm (
             val time = remember { mutableStateOf("") }
 
             Row (
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
@@ -200,7 +203,9 @@ fun NoteEntryForm (
                         datePicker.show()
                     }
                 ) {
-                    Text(if (date.value.isEmpty()) "Seleccionar fecha" else "Fecha: ${date.value}")
+                    Text(if (date.value.isEmpty()) stringResource(R.string.seleccionar_fecha) else stringResource(
+                        R.string.texto_fecha, date.value
+                    ))
                 }
 
                 Button(
@@ -220,7 +225,9 @@ fun NoteEntryForm (
                         timePicker.show()
                     }
                 ) {
-                    Text(if (time.value.isEmpty()) "Seleccionar hora" else "Hora: ${time.value}")
+                    Text(if (time.value.isEmpty()) stringResource(R.string.seleccionar_hora) else stringResource(
+                        R.string.texto_hora, time.value
+                    ))
                 }
             }
         }
@@ -246,12 +253,12 @@ fun NoteEntryForm (
         }
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { launcher.launch("*/*") }) {
-            Text("📎 Agregar archivo")
+            Text(stringResource(R.string.agregar_archivo))
         }
 
         if (attachments.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Archivos adjuntos:", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.archivos_adjuntos), style = MaterialTheme.typography.titleMedium)
 
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -323,7 +330,9 @@ fun TitleCard(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(16.dp, 16.dp, 0.dp).fillMaxWidth()
+                modifier = Modifier
+                    .padding(16.dp, 16.dp, 0.dp)
+                    .fillMaxWidth()
             )
             OutlinedTextField(
                 value = value,
@@ -372,7 +381,9 @@ fun DescriptionCard(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(16.dp, 16.dp, 0.dp).fillMaxWidth()
+                modifier = Modifier
+                    .padding(16.dp, 16.dp, 0.dp)
+                    .fillMaxWidth()
             )
             OutlinedTextField(
                 value = value,
@@ -416,7 +427,7 @@ fun ConvertToTaskCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Marcar como tarea", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.marcar_como_tarea), fontWeight = FontWeight.Bold)
 
             Checkbox(
                 checked = noteUiState.isTask,
@@ -436,21 +447,23 @@ fun RemindersCard() {
             .padding(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Recordatorios", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.recordatorios), fontWeight = FontWeight.Bold)
                 Text(
-                    "+ Agregar recordatorio",
+                    stringResource(R.string.agregar_recordatorio),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable {  }
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("No se han añadido recordatorios", color = Color.Gray, fontSize = 13.sp)
+            Text(stringResource(R.string.recordatorios_vacios), color = Color.Gray, fontSize = 13.sp)
         }
     }
 }
@@ -463,21 +476,23 @@ fun AttachmentsCard() {
             .padding(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Archivos adjuntos", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.archivos_adjuntos), fontWeight = FontWeight.Bold)
                 Text(
-                    "+ Agregar archivo",
+                    stringResource(R.string.agregar_archivo),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { }
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("No hay archivos adjuntos añadidos", color = Color.Gray, fontSize = 13.sp)
+            Text(stringResource(R.string.archivos_vacios), color = Color.Gray, fontSize = 13.sp)
         }
     }
 }
