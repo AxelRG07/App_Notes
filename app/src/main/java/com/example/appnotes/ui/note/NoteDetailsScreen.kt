@@ -37,6 +37,8 @@ import java.util.*
 fun NoteDetailScreen(
     noteId: Int,
     navController: NavController,
+    onEditNote: ((Int) -> Unit)? = null,
+    onNoteDeleted: (() -> Unit)? = null,
     viewModel: NoteDetailsViewModel = viewModel(factory = NoteDetailsViewModelProvider.Factory)
 ) {
     val noteWithDetails by viewModel.noteUiState.collectAsState()
@@ -57,7 +59,11 @@ fun NoteDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = { noteWithDetails?.note?.let {
-                        navController.navigate("${NoteEditDestination.route}/${it.id}")
+                        if (onEditNote != null) {
+                            onEditNote(it.id)
+                        } else {
+                            navController.navigate("${NoteEditDestination.route}/${it.id}")
+                        }
                     } }) {
                         Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.btn_editar))
                     }
@@ -103,6 +109,7 @@ fun NoteDetailScreen(
                         onClick = {
                             showDeleteDialog = false
                             viewModel.deleteNote {
+                                onNoteDeleted?.invoke()
                                 navController.navigateUp()
                             }
                         }

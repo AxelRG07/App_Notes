@@ -60,6 +60,7 @@ import com.example.appnotes.ui.navigation.NoteDetailDestination
 import com.example.appnotes.ui.navigation.NoteEditDestination
 import com.example.appnotes.ui.navigation.NoteEntryDestination
 import com.example.appnotes.ui.note.NoteDetailScreen
+import com.example.appnotes.ui.note.NoteEntryScreen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -308,10 +309,17 @@ fun HomeScreenCompact(
 }
 
 @Composable
-fun HomeScreenExpanded(navController: NavController, notes: List<NoteWithDetails>) {
+fun HomeScreenExpanded(
+    navController: NavController,
+    notes: List<NoteWithDetails>,
+) {
     var selectedNoteId by remember { mutableStateOf<Int?>(null) }
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
     var selectedFilter by remember { mutableStateOf("All") }
+
+    var addNote by remember { mutableStateOf(false) }
+    var editNote by remember { mutableStateOf(false) }
+
 
     Row(Modifier.fillMaxSize()) {
         Box(
@@ -323,7 +331,11 @@ fun HomeScreenExpanded(navController: NavController, notes: List<NoteWithDetails
                 topBar = { NotesTopBar() },
                 floatingActionButton = {
                     FloatingActionButton(
-                        onClick = { navController.navigate(NoteEntryDestination.route) },
+                        onClick = {
+                            selectedNoteId = null
+                            addNote = true
+                            editNote = false
+                        },
                         containerColor = MaterialTheme.colorScheme.primary
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Agregar nota")
@@ -355,7 +367,9 @@ fun HomeScreenExpanded(navController: NavController, notes: List<NoteWithDetails
                             matchesSearch && matchesFilter
                         },
                         onClickNote = { noteId ->
+                            addNote = false
                             selectedNoteId = noteId
+                            editNote = false
                         }
                     )
                 }
@@ -368,10 +382,43 @@ fun HomeScreenExpanded(navController: NavController, notes: List<NoteWithDetails
                 .fillMaxHeight()
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            selectedNoteId?.let { id ->
-                NoteDetailScreen(noteId = id, navController = navController )
-            } ?: Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Text("Selecciona una nota para ver los detalles")
+            when {
+                addNote -> {
+                    NoteEntryScreen(
+                        noteId = null,
+                        navigateBack = { addNote = false },
+                    )
+                }
+
+                editNote && selectedNoteId != null -> {
+                    NoteEntryScreen(
+                        noteId = selectedNoteId,
+                        navigateBack = { editNote = false },
+                    )
+                }
+
+                selectedNoteId != null -> {
+                    NoteDetailScreen(
+                        noteId = selectedNoteId!!,
+                        navController = navController,
+                        onEditNote = { id ->
+                            selectedNoteId = id
+                            editNote = true
+                            addNote = false
+                        },
+                        onNoteDeleted = {
+                            selectedNoteId = null
+                            editNote = false
+                            addNote = false
+                        }
+                    )
+                }
+
+                else -> {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text("Selecciona una nota o agrega una nueva")
+                    }
+                }
             }
         }
     }

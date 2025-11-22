@@ -87,7 +87,9 @@ fun NoteEntryScreen (
     LaunchedEffect(
         noteId
     ) {
-        if (noteId != null) viewModel.loadNote(noteId)
+        if (noteId != null) {
+            viewModel.loadNote(noteId)
+        }
     }
 
     Surface(
@@ -237,15 +239,15 @@ fun NoteEntryForm (
             contract = ActivityResultContracts.GetContent()
         ) { uri: Uri? ->
             uri?.let {
-                val mime = context.contentResolver.getType(uri) ?: ""
+                val t = context.contentResolver.getType(uri) ?: ""
                 val type = when {
-                    mime.startsWith("image/") -> "image"
-                    mime.startsWith("video/") -> "video"
-                    mime.startsWith("audio/") -> "audio"
+                    t.startsWith("image/") -> "image"
+                    t.startsWith("video/") -> "video"
+                    t.startsWith("audio/") -> "audio"
                     else -> "file"
                 }
                 val newAttachment = Attachment(
-                    noteId = 0, // luego se actualiza tras guardar la nota
+                    noteId = 0,
                     uri = uri.toString(),
                     type = type
                 )
