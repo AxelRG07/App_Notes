@@ -3,6 +3,9 @@ package com.example.appnotes.ui.components
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
+import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.FrameLayout
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,13 +22,16 @@ import com.example.appnotes.data.Attachment
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 
 
 @Composable
 fun AttachmentViewer(attachment: Attachment) {
     when (attachment.type) {
         "image" -> ImageViewer(uri = attachment.uri)
-        //"video" -> VideoViewer(uri = attachment.uri)
+        "video" -> VideoViewer(uri = attachment.uri)
         "audio" -> AudioPlayer(uri = attachment.uri)
     }
 }
@@ -44,7 +50,7 @@ fun ImageViewer(uri: String) {
     )
 }
 
-/*@Composable
+@Composable
 fun VideoViewer(uri: String) {
     val context = LocalContext.current
     val exoPlayer = remember {
@@ -52,6 +58,7 @@ fun VideoViewer(uri: String) {
             val mediaItem = MediaItem.fromUri(Uri.parse(uri))
             setMediaItem(mediaItem)
             prepare()
+            playWhenReady = false
         }
     }
 
@@ -63,12 +70,10 @@ fun VideoViewer(uri: String) {
 
     AndroidView(
         factory = {
-            StyledPlayerView(it).apply {
+            PlayerView(context).apply {
                 player = exoPlayer
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    350.dp.roundToPx()
-                )
+                layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                useController = true
             }
         },
         modifier = Modifier
@@ -76,28 +81,60 @@ fun VideoViewer(uri: String) {
             .height(250.dp)
             .padding(8.dp)
     )
-}*/
+}
 
 @Composable
 fun AudioPlayer(uri: String) {
     val context = LocalContext.current
+    // Usamos 'remember' para mantener la instancia, pero mutable para poder anularla
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
-
-    fun start() {
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(context, Uri.parse(uri))
-            prepare()
-            start()
-        }
-        isPlaying = true
-    }
+    var isLoading by remember { mutableStateOf(false) } // Opcional: para mostrar carga
 
     fun stop() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         mediaPlayer = null
         isPlaying = false
+        isLoading = false
+    }
+
+    fun start() {
+        // Si ya hay uno reproduciendo, lo limpiamos primero
+        stop()
+
+        isLoading = true
+
+        val mp = MediaPlayer()
+        try {
+            mp.setDataSource(context, Uri.parse(uri))
+
+            // 1. Configurar qué pasa cuando termine de cargar (Asíncrono)
+            mp.setOnPreparedListener { player ->
+                player.start()
+                isLoading = false
+                isPlaying = true
+                mediaPlayer = player // Guardamos la referencia en el estado
+            }
+
+            // 2. Configurar qué pasa cuando termine el audio
+            mp.setOnCompletionListener {
+                stop() // Reseteamos el botón cuando acaba la canción
+            }
+
+            // 3. ¡LA CLAVE! Preparar en segundo plano para no congelar la app
+            mp.prepareAsync()
+
+        } catch (e: Exception) {
+            // Si la URI es inválida o el archivo no existe
+            e.printStackTrace()
+            isLoading = false
+            stop()
+        }
     }
 
     DisposableEffect(Unit) {
@@ -112,10 +149,20 @@ fun AudioPlayer(uri: String) {
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Button(onClick = {
-            if (!isPlaying) start() else stop()
-        }) {
-            Text(if (!isPlaying) "▶ Reproducir audio" else "⏹ Detener")
+        Button(
+            onClick = {
+                if (!isPlaying) start() else stop()
+            },
+            // Deshabilitamos el botón mientras carga para evitar clicks dobles
+            enabled = !isLoading
+        ) {
+            Text(
+                when {
+                    isLoading -> "⌛ Cargando..."
+                    isPlaying -> "⏹ Detener"
+                    else -> "▶ Reproducir audio"
+                }
+            )
         }
     }
 }

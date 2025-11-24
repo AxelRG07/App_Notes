@@ -64,8 +64,13 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.media3.exoplayer)
     ksp("androidx.room:room-compiler:${rootProject.extra["room_version"]}")
     implementation("androidx.room:room-ktx:${rootProject.extra["room_version"]}")
+
+    implementation("androidx.media3:media3-exoplayer:1.2.0") // O la versión más reciente
+    implementation("androidx.media3:media3-ui:1.2.0") // Para la vista del reproductor (controles)
+    implementation("androidx.media3:media3-common:1.2.0")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
 
