@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,16 +27,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -69,20 +75,22 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.appnotes.R
 import com.example.appnotes.data.Attachment
 import com.example.appnotes.ui.NoteEntryViewModelProvider
+import com.example.appnotes.ui.components.AudioRecorderButton
+import com.example.appnotes.ui.components.RequestMediaPermissions
+import com.example.appnotes.util.createMediaFile
+import com.example.appnotes.util.getUriForFile
 import java.util.Calendar
 
 @Composable
-fun NoteEntryScreen (
+fun NoteEntryScreen(
     navigateBack: () -> Unit,
     onNavigateUp: () -> Unit = navigateBack,
     noteId: Int? = null,
     viewModel: NoteEntryViewModel = viewModel(factory = NoteEntryViewModelProvider.Factory)
-)
-{
+) {
     val noteUiState by viewModel.noteUiState.collectAsState()
     val context = LocalContext.current
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
-
 
     LaunchedEffect(
         noteId
@@ -103,7 +111,12 @@ fun NoteEntryScreen (
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     text = { Text(stringResource(R.string.btn_guardar)) },
-                    icon = { Icon(Icons.Default.Check, contentDescription = stringResource(R.string.btn_guardar)) },
+                    icon = {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = stringResource(R.string.btn_guardar)
+                        )
+                    },
                     onClick = {
                         if (viewModel.isValidNote()) {
                             viewModel.saveNote(attachments)
@@ -116,13 +129,14 @@ fun NoteEntryScreen (
             NoteEntryForm(
                 noteUiState,
                 attachments = attachments,
-                onAttachmentsChange = {attachments = it},
+                onAttachmentsChange = { attachments = it },
                 onValueChange = viewModel::updateUiState,
                 modifier = Modifier.padding(innerPadding)
             )
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesTopBar(
@@ -130,10 +144,13 @@ fun NotesTopBar(
     onNavigateUp: () -> Unit
 ) {
     TopAppBar(
-        title = { Text( if(noteId == null) stringResource(R.string.nueva_nota) else stringResource(R.string.editar_nota))  },
+        title = { Text(if (noteId == null) stringResource(R.string.nueva_nota) else stringResource(R.string.editar_nota)) },
         navigationIcon = {
             IconButton(onClick = onNavigateUp) {
-                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.btn_volver))
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = stringResource(R.string.btn_volver)
+                )
             }
         },
         modifier = Modifier
@@ -143,17 +160,78 @@ fun NotesTopBar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteEntryForm (
+fun NoteEntryForm(
     noteUiState: NoteUiState,
     attachments: List<Attachment>,
     onAttachmentsChange: (List<Attachment>) -> Unit,
     onValueChange: (NoteUiState) -> Unit,
-
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
-    Column (
+
+    // --------------------------------------------------------------
+    // 1️⃣ Estado local: permisos y bottom sheet
+    // --------------------------------------------------------------
+    var showMediaSheet by remember { mutableStateOf(false) }
+    var showAudioRecorder by remember { mutableStateOf(false) }
+    var permissionsGranted by remember { mutableStateOf(false) }
+
+    // --------------------------------------------------------------
+    // 2️⃣ Pedir permisos con nuestro composable
+    // --------------------------------------------------------------
+    val requestPermissions = @Composable {
+        RequestMediaPermissions {
+            permissionsGranted = true
+        }
+    }
+
+    // --------------------------------------------------------------
+    // 3️⃣ Launchers desde MediaPickers.kt
+    // --------------------------------------------------------------
+
+    // FOTO
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) }
+    val takePictureLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success && tempImageUri != null) {
+                val newAttachment = Attachment(
+                    noteId = 0,
+                    uri = tempImageUri.toString(),
+                    type = "image"
+                )
+                onAttachmentsChange(attachments + newAttachment)
+            }
+        }
+
+    // VIDEO
+    var tempVideoUri by remember { mutableStateOf<Uri?>(null) }
+    val captureVideoLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
+            if (success && tempVideoUri != null) {
+                val newAttachment = Attachment(
+                    noteId = 0,
+                    uri = tempImageUri.toString(),
+                    type = "video"
+                )
+                onAttachmentsChange(attachments + newAttachment)
+            }
+        }
+
+
+    fun prepareImageCapture() {
+        val file = context.createMediaFile(".jpg")
+        tempImageUri = context.getUriForFile(file)
+        takePictureLauncher.launch(tempImageUri!!)
+    }
+
+    fun prepareVideoCapture() {
+        val file = context.createMediaFile(".mp4")
+        tempVideoUri = context.getUriForFile(file)
+        captureVideoLauncher.launch(tempVideoUri!!)
+    }
+
+    Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -184,7 +262,7 @@ fun NoteEntryForm (
             val date = remember { mutableStateOf("") }
             val time = remember { mutableStateOf("") }
 
-            Row (
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp),
@@ -206,9 +284,11 @@ fun NoteEntryForm (
                         datePicker.show()
                     }
                 ) {
-                    Text(if (date.value.isEmpty()) stringResource(R.string.seleccionar_fecha) else stringResource(
-                        R.string.texto_fecha, date.value
-                    ))
+                    Text(
+                        if (date.value.isEmpty()) stringResource(R.string.seleccionar_fecha) else stringResource(
+                            R.string.texto_fecha, date.value
+                        )
+                    )
                 }
 
                 Button(
@@ -228,12 +308,108 @@ fun NoteEntryForm (
                         timePicker.show()
                     }
                 ) {
-                    Text(if (time.value.isEmpty()) stringResource(R.string.seleccionar_hora) else stringResource(
-                        R.string.texto_hora, time.value
-                    ))
+                    Text(
+                        if (time.value.isEmpty()) stringResource(R.string.seleccionar_hora) else stringResource(
+                            R.string.texto_hora, time.value
+                        )
+                    )
                 }
             }
         }
+
+        Button(
+            onClick = {
+                if (!permissionsGranted) {
+                    permissionsGranted = false
+                }
+                showMediaSheet = true
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Adjuntar archivo (foto / video)")
+        }
+
+        if (showMediaSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showMediaSheet = false }
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Selecciona una opción",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+
+                    Divider()
+
+                    if (!permissionsGranted) {
+                        requestPermissions()
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showMediaSheet = false
+                                    prepareImageCapture()
+                                }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Tomar foto", style = MaterialTheme.typography.bodyLarge)
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showMediaSheet = false
+                                    prepareVideoCapture()
+                                }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Videocam, contentDescription = null)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Grabar video", style = MaterialTheme.typography.bodyLarge)
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showMediaSheet = false
+                                    showAudioRecorder = true
+                                }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Mic, null)
+                            Spacer(Modifier.width(16.dp))
+                            Text("Grabar audio")
+                        }
+
+                    }
+                }
+            }
+        }
+
+        if (showAudioRecorder) {
+            AudioRecorderButton { uri ->
+                val newAttachment = Attachment(
+                    noteId = 0,
+                    uri = uri.toString(),
+                    type = "audio"
+                )
+                onAttachmentsChange(attachments + newAttachment)
+                showAudioRecorder = false
+            }
+        }
+
 
         val launcher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
@@ -261,7 +437,10 @@ fun NoteEntryForm (
 
         if (attachments.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(stringResource(R.string.archivos_adjuntos), style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.archivos_adjuntos),
+                style = MaterialTheme.typography.titleMedium
+            )
 
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -279,6 +458,7 @@ fun NoteEntryForm (
                                 contentScale = ContentScale.Crop
                             )
                         }
+
                         "video" -> {
                             Icon(
                                 Icons.Default.PlayArrow,
@@ -286,6 +466,7 @@ fun NoteEntryForm (
                                 modifier = Modifier.size(60.dp)
                             )
                         }
+
                         "audio" -> {
                             Icon(
                                 Icons.Default.Add,
@@ -293,6 +474,7 @@ fun NoteEntryForm (
                                 modifier = Modifier.size(60.dp)
                             )
                         }
+
                         else -> {
                             Icon(
                                 Icons.Default.Add,
@@ -319,15 +501,15 @@ fun TitleCard(
     lines: Int,
     single: Boolean,
     modifier: Modifier = Modifier
-){
-    Card (
+) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp),
         elevation = CardDefaults.cardElevation(8.dp),
     ) {
 
-        Column (
+        Column(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
@@ -370,15 +552,15 @@ fun DescriptionCard(
     lines: Int,
     single: Boolean,
     modifier: Modifier = Modifier
-){
-    Card (
+) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp),
         elevation = CardDefaults.cardElevation(8.dp),
     ) {
 
-        Column (
+        Column(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
@@ -430,7 +612,10 @@ fun ConvertToTaskCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(stringResource(R.string.marcar_como_tarea), fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.marcar_como_tarea),
+                fontWeight = FontWeight.Bold
+            )
 
             Checkbox(
                 checked = noteUiState.isTask,
@@ -450,23 +635,32 @@ fun RemindersCard() {
             .padding(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.recordatorios), fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(R.string.recordatorios),
+                    fontWeight = FontWeight.Bold
+                )
                 Text(
                     stringResource(R.string.agregar_recordatorio),
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable {  }
+                    modifier = Modifier.clickable { }
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(stringResource(R.string.recordatorios_vacios), color = Color.Gray, fontSize = 13.sp)
+            Text(
+                stringResource(R.string.recordatorios_vacios),
+                color = Color.Gray,
+                fontSize = 13.sp
+            )
         }
     }
 }
@@ -479,15 +673,20 @@ fun AttachmentsCard() {
             .padding(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.archivos_adjuntos), fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(R.string.archivos_adjuntos),
+                    fontWeight = FontWeight.Bold
+                )
                 Text(
                     stringResource(R.string.agregar_archivo),
                     color = MaterialTheme.colorScheme.primary,
@@ -495,7 +694,11 @@ fun AttachmentsCard() {
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(stringResource(R.string.archivos_vacios), color = Color.Gray, fontSize = 13.sp)
+            Text(
+                stringResource(R.string.archivos_vacios),
+                color = Color.Gray,
+                fontSize = 13.sp
+            )
         }
     }
 }
