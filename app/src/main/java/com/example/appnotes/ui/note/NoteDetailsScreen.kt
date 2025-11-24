@@ -26,6 +26,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.appnotes.R
 import com.example.appnotes.data.NoteWithDetails
 import com.example.appnotes.ui.NoteDetailsViewModelProvider
+import com.example.appnotes.ui.components.AttachmentViewer
 import com.example.appnotes.ui.navigation.HomeDestination
 import com.example.appnotes.ui.navigation.NavigationDestination
 import com.example.appnotes.ui.navigation.NoteEditDestination
@@ -178,7 +179,8 @@ fun NoteDetailContent(
         if (note.attachments.isNotEmpty()) {
             item { Text(stringResource(R.string.archivos_adjuntos), style = MaterialTheme.typography.titleMedium) }
             items(note.attachments) { att ->
-                when (att.type) {
+                AttachmentViewer(att)
+                /*when (att.type) {
                     "image" -> {
                         Image(
                             painter = rememberAsyncImagePainter(att.uri),
@@ -200,7 +202,7 @@ fun NoteDetailContent(
                         Text(context.getString(R.string.archivo, att.caption ?: att.uri))
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))*/
             }
         }
     }
