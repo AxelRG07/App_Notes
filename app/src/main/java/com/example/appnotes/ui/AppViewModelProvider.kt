@@ -7,6 +7,7 @@ import com.example.appnotes.NotesApplication
 import com.example.appnotes.ui.home.HomeViewModel
 import com.example.appnotes.ui.note.NoteDetailsViewModel
 import com.example.appnotes.ui.note.NoteEntryViewModel
+import com.example.appnotes.util.AndroidAlarmScheduler
 
 object HomeViewModelProvider {
     val Factory = viewModelFactory {
@@ -23,7 +24,10 @@ object NoteEntryViewModelProvider {
         initializer {
             val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as NotesApplication
             val repository = application.container.notesRepository
-            NoteEntryViewModel(repository)
+
+            val alarmScheduler = AndroidAlarmScheduler(application.applicationContext)
+
+            NoteEntryViewModel(repository, alarmScheduler = alarmScheduler)
         }
     }
 }

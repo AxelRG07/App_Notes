@@ -5,12 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.appnotes.data.Attachment
 import com.example.appnotes.data.Note
 import com.example.appnotes.data.NotesRepository
+import com.example.appnotes.util.AlarmScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class NoteEntryViewModel(private val notesRepository: NotesRepository) : ViewModel() {
+class NoteEntryViewModel(
+    private val notesRepository: NotesRepository,
+    private val alarmScheduler: AlarmScheduler
+) : ViewModel() {
     private val _noteUiState = MutableStateFlow(NoteUiState())
     val noteUiState: StateFlow<NoteUiState> = _noteUiState.asStateFlow()
 
@@ -56,6 +60,21 @@ class NoteEntryViewModel(private val notesRepository: NotesRepository) : ViewMod
                 note.id.toLong()
             } else {
                 notesRepository.insertNote(note)
+            }
+
+            // 2. Programar la alarma si es una tarea y tiene fecha
+            if (note.isTask && note.dueDateTime != null) {
+                // Creamos una copia de la nota con el ID real (por si era nueva y note.id era 0)
+                val finalNote = note.copy(id = noteId.toInt())
+
+                try {
+                    alarmScheduler.schedule(finalNote)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            } else {
+                val finalNote = note.copy(id = noteId.toInt())
+                alarmScheduler.cancel(finalNote)
             }
 
             attachments.forEach { att ->

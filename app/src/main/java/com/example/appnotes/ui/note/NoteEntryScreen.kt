@@ -3,6 +3,7 @@ package com.example.appnotes.ui.note
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.net.Uri
+import android.os.Build
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,6 +81,7 @@ import com.example.appnotes.ui.components.RequestMediaPermissions
 import com.example.appnotes.util.createMediaFile
 import com.example.appnotes.util.getUriForFile
 import java.util.Calendar
+import java.util.jar.Manifest
 
 @Composable
 fun NoteEntryScreen(
@@ -91,6 +93,18 @@ fun NoteEntryScreen(
     val noteUiState by viewModel.noteUiState.collectAsState()
     val context = LocalContext.current
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                // Permiso concedido
+            } else {
+                // Permiso denegado, podrías mostrar un aviso
+            }
+        }
+    )
+
 
     LaunchedEffect(
         noteId
@@ -170,25 +184,16 @@ fun NoteEntryForm(
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
 
-    // --------------------------------------------------------------
-    // 1️⃣ Estado local: permisos y bottom sheet
-    // --------------------------------------------------------------
     var showMediaSheet by remember { mutableStateOf(false) }
     var showAudioRecorder by remember { mutableStateOf(false) }
     var permissionsGranted by remember { mutableStateOf(false) }
 
-    // --------------------------------------------------------------
-    // 2️⃣ Pedir permisos con nuestro composable
-    // --------------------------------------------------------------
     val requestPermissions = @Composable {
         RequestMediaPermissions {
             permissionsGranted = true
         }
     }
 
-    // --------------------------------------------------------------
-    // 3️⃣ Launchers desde MediaPickers.kt
-    // --------------------------------------------------------------
 
     // FOTO
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -626,87 +631,3 @@ fun ConvertToTaskCard(
         }
     }
 }
-
-@Composable
-fun RemindersCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    stringResource(R.string.recordatorios),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    stringResource(R.string.agregar_recordatorio),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { }
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.recordatorios_vacios),
-                color = Color.Gray,
-                fontSize = 13.sp
-            )
-        }
-    }
-}
-
-@Composable
-fun AttachmentsCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    stringResource(R.string.archivos_adjuntos),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    stringResource(R.string.agregar_archivo),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { }
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.archivos_vacios),
-                color = Color.Gray,
-                fontSize = 13.sp
-            )
-        }
-    }
-}
-
-//@Preview
-//@Composable
-//fun CreateEditPreview(){
-//    AppNotesTheme {
-//
-//    }
-//}
