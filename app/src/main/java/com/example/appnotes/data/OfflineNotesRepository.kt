@@ -32,4 +32,8 @@ class OfflineNotesRepository (private val noteDao: NoteDao) : NotesRepository {
 
     override suspend fun deleteAttachmentsByNoteId(noteId: Int) =
         noteDao.deleteAttachmentsByNoteId(noteId)
+
+    override suspend fun deleteAttachment(attachment: Attachment) =
+        noteDao.deleteAttachment(attachment)
+
 }

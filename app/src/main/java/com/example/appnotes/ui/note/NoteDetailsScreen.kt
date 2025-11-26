@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.appnotes.R
+import com.example.appnotes.data.Attachment
 import com.example.appnotes.data.NoteWithDetails
 import com.example.appnotes.ui.NoteDetailsViewModelProvider
 import com.example.appnotes.ui.components.AttachmentViewer
@@ -89,6 +90,9 @@ fun NoteDetailScreen(
         noteWithDetails?.let {
             NoteDetailContent(
                 note = it,
+                onDeleteAttachment = { attachment ->
+                    viewModel.deleteAttachment(attachment)
+                },
                 modifier = Modifier.padding(innerPadding)
             )
         } ?: Box(
@@ -131,6 +135,7 @@ fun NoteDetailScreen(
 @Composable
 fun NoteDetailContent(
     note: NoteWithDetails,
+    onDeleteAttachment: (Attachment) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val sdf = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
@@ -179,30 +184,9 @@ fun NoteDetailContent(
         if (note.attachments.isNotEmpty()) {
             item { Text(stringResource(R.string.archivos_adjuntos), style = MaterialTheme.typography.titleMedium) }
             items(note.attachments) { att ->
-                AttachmentViewer(att)
-                /*when (att.type) {
-                    "image" -> {
-                        Image(
-                            painter = rememberAsyncImagePainter(att.uri),
-                            contentDescription = att.caption ?: "imagen adjunta",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(180.dp)
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    "video" -> {
-                        Text(context.getString(R.string.video_adjunto, att.caption ?: att.uri))
-                    }
-                    "audio" -> {
-                        Text(context.getString(R.string.audio_adjunto, att.caption ?: att.uri))
-                    }
-                    else -> {
-                        Text(context.getString(R.string.archivo, att.caption ?: att.uri))
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))*/
+                AttachmentViewer(att,
+                    onDelete = { onDeleteAttachment(att) })
+
             }
         }
     }

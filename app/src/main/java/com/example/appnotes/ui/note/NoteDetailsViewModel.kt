@@ -2,6 +2,7 @@ package com.example.appnotes.ui.note
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.appnotes.data.Attachment
 import com.example.appnotes.data.NoteWithDetails
 import com.example.appnotes.data.NotesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,12 @@ class NoteDetailsViewModel ( private val notesRepository: NotesRepository ) : Vi
                 _noteUiState.value = null
                 onDeleted()
             }
+        }
+    }
+
+    fun deleteAttachment(attachment: Attachment) {
+        viewModelScope.launch {
+            notesRepository.deleteAttachment(attachment)
         }
     }
 

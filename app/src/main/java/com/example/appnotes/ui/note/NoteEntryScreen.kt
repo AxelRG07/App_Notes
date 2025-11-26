@@ -22,8 +22,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -76,8 +78,10 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.appnotes.R
 import com.example.appnotes.data.Attachment
 import com.example.appnotes.ui.NoteEntryViewModelProvider
+import com.example.appnotes.ui.components.AttachmentViewer
 import com.example.appnotes.ui.components.AudioRecorderButton
 import com.example.appnotes.ui.components.RequestMediaPermissions
+import com.example.appnotes.ui.components.VideoCaptureButton
 import com.example.appnotes.util.createMediaFile
 import com.example.appnotes.util.getUriForFile
 import java.util.Calendar
@@ -91,8 +95,7 @@ fun NoteEntryScreen(
     viewModel: NoteEntryViewModel = viewModel(factory = NoteEntryViewModelProvider.Factory)
 ) {
     val noteUiState by viewModel.noteUiState.collectAsState()
-    val context = LocalContext.current
-    var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
+    val attachments by viewModel.attachments.collectAsState()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -100,7 +103,7 @@ fun NoteEntryScreen(
             if (isGranted) {
                 // Permiso concedido
             } else {
-                // Permiso denegado, podrías mostrar un aviso
+                // Permiso denegado
             }
         }
     )
@@ -133,7 +136,7 @@ fun NoteEntryScreen(
                     },
                     onClick = {
                         if (viewModel.isValidNote()) {
-                            viewModel.saveNote(attachments)
+                            viewModel.saveNote()
                             navigateBack()
                         }
                     }
@@ -143,7 +146,8 @@ fun NoteEntryScreen(
             NoteEntryForm(
                 noteUiState,
                 attachments = attachments,
-                onAttachmentsChange = { attachments = it },
+                onAttachmentsChange = { viewModel.updateAttachments(it) },
+                onDeleteAttachment = { viewModel.deleteAttachment(it) },
                 onValueChange = viewModel::updateUiState,
                 modifier = Modifier.padding(innerPadding)
             )
@@ -178,6 +182,7 @@ fun NoteEntryForm(
     noteUiState: NoteUiState,
     attachments: List<Attachment>,
     onAttachmentsChange: (List<Attachment>) -> Unit,
+    onDeleteAttachment: (Attachment) -> Unit,
     onValueChange: (NoteUiState) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -186,6 +191,7 @@ fun NoteEntryForm(
 
     var showMediaSheet by remember { mutableStateOf(false) }
     var showAudioRecorder by remember { mutableStateOf(false) }
+    var showVideoRecorder by remember { mutableStateOf(false) }
     var permissionsGranted by remember { mutableStateOf(false) }
 
     val requestPermissions = @Composable {
@@ -193,7 +199,6 @@ fun NoteEntryForm(
             permissionsGranted = true
         }
     }
-
 
     // FOTO
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -209,20 +214,6 @@ fun NoteEntryForm(
             }
         }
 
-    // VIDEO
-    var tempVideoUri by remember { mutableStateOf<Uri?>(null) }
-    val captureVideoLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
-            if (success && tempVideoUri != null) {
-                val newAttachment = Attachment(
-                    noteId = 0,
-                    uri = tempImageUri.toString(),
-                    type = "video"
-                )
-                onAttachmentsChange(attachments + newAttachment)
-            }
-        }
-
 
     fun prepareImageCapture() {
         val file = context.createMediaFile(".jpg")
@@ -230,14 +221,10 @@ fun NoteEntryForm(
         takePictureLauncher.launch(tempImageUri!!)
     }
 
-    fun prepareVideoCapture() {
-        val file = context.createMediaFile(".mp4")
-        tempVideoUri = context.getUriForFile(file)
-        captureVideoLauncher.launch(tempVideoUri!!)
-    }
-
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TitleCard(
@@ -373,7 +360,7 @@ fun NoteEntryForm(
                                 .fillMaxWidth()
                                 .clickable {
                                     showMediaSheet = false
-                                    prepareVideoCapture()
+                                    showVideoRecorder = true
                                 }
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -415,6 +402,18 @@ fun NoteEntryForm(
             }
         }
 
+        if (showVideoRecorder) {
+            VideoCaptureButton { uri ->
+                val newAttachment = Attachment(
+                    noteId = 0,
+                    uri = uri.toString(),
+                    type = "video"
+                )
+                onAttachmentsChange(attachments + newAttachment)
+                showVideoRecorder = false
+            }
+        }
+
 
         val launcher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
@@ -447,47 +446,15 @@ fun NoteEntryForm(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.padding(top = 8.dp)
             ) {
-                items(attachments) { att ->
-                    when (att.type) {
-                        "image" -> {
-                            Image(
-                                painter = rememberAsyncImagePainter(att.uri),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        "video" -> {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                modifier = Modifier.size(60.dp)
-                            )
-                        }
-
-                        "audio" -> {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(60.dp)
-                            )
-                        }
-
-                        else -> {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(60.dp)
-                            )
-                        }
-                    }
+                attachments.forEach { att ->
+                    AttachmentViewer(
+                        attachment = att,
+                        onDelete = { onDeleteAttachment(att) }
+                    )
                 }
             }
         }

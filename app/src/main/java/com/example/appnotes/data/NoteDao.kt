@@ -29,7 +29,6 @@ interface NoteDao {
     suspend fun deleteNote(note: Note)
 
 
-
     //Reminders
     @Insert
     suspend fun insertReminder(reminder: Reminder)
@@ -43,5 +42,8 @@ interface NoteDao {
 
     @Query("DELETE FROM attachments WHERE noteId = :noteId")
     suspend fun deleteAttachmentsByNoteId(noteId: Int)
+
+    @Delete
+    suspend fun deleteAttachment(attachment: Attachment)
 
 }

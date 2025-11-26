@@ -18,9 +18,16 @@ class NoteEntryViewModel(
     private val _noteUiState = MutableStateFlow(NoteUiState())
     val noteUiState: StateFlow<NoteUiState> = _noteUiState.asStateFlow()
 
-    private var isEditMode = false
+    // Estado separado para la lista de archivos adjuntos (imágenes, videos, audios)
+    private val _attachments = MutableStateFlow<List<Attachment>>(emptyList())
+    val attachments: StateFlow<List<Attachment>> = _attachments.asStateFlow()
 
+    private var isEditMode = false
+    private var isDataLoaded = false
     fun loadNote(noteId: Int) {
+
+        if (isDataLoaded) return
+
         viewModelScope.launch {
             notesRepository.getNote(noteId).collect { noteWithDetails ->
                 noteWithDetails?.let { safeNoteWithDetais ->
@@ -34,7 +41,9 @@ class NoteEntryViewModel(
                         completed = note.isCompleted,
                         createdAt = note.createdAt
                     )
+                    _attachments.value = noteWithDetails.attachments
                     isEditMode = true
+                    isDataLoaded = true
                 }
             }
         }
@@ -44,7 +53,23 @@ class NoteEntryViewModel(
         _noteUiState.value = newState
     }
 
-    fun saveNote(attachments: List<Attachment> = emptyList()) {
+    fun updateAttachments(newAttachments: List<Attachment>) {
+        _attachments.value = newAttachments
+    }
+
+    fun deleteAttachment(attachment: Attachment) {
+        viewModelScope.launch {
+            if (attachment.id != 0) {
+                notesRepository.deleteAttachment(attachment)
+            }
+
+            val currentList = _attachments.value.toMutableList()
+            currentList.remove(attachment)
+            _attachments.value = currentList
+        }
+    }
+
+    fun saveNote() {
         viewModelScope.launch {
             val note = Note(
                 id = noteUiState.value.id,
@@ -77,8 +102,10 @@ class NoteEntryViewModel(
                 alarmScheduler.cancel(finalNote)
             }
 
-            attachments.forEach { att ->
-                notesRepository.addAttachment(att.copy(noteId = noteId.toInt()))
+            _attachments.value.forEach { att ->
+                if (att.id == 0) {
+                    notesRepository.addAttachment(att.copy(noteId = noteId.toInt()))
+                }
             }
         }
     }
