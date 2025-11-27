@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.appnotes.data.Attachment
 import com.example.appnotes.data.Note
 import com.example.appnotes.data.NotesRepository
+import com.example.appnotes.data.Reminder
 import com.example.appnotes.util.AlarmScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,9 @@ class NoteEntryViewModel(
     // Estado separado para la lista de archivos adjuntos (imágenes, videos, audios)
     private val _attachments = MutableStateFlow<List<Attachment>>(emptyList())
     val attachments: StateFlow<List<Attachment>> = _attachments.asStateFlow()
+
+    private val _reminders = MutableStateFlow<List<Reminder>>(emptyList())
+    val reminders: StateFlow<List<Reminder>> = _reminders.asStateFlow()
 
     private var isEditMode = false
     private var isDataLoaded = false
@@ -42,6 +46,9 @@ class NoteEntryViewModel(
                         createdAt = note.createdAt
                     )
                     _attachments.value = noteWithDetails.attachments
+
+                    _reminders.value = noteWithDetails.reminders
+
                     isEditMode = true
                     isDataLoaded = true
                 }
@@ -69,6 +76,30 @@ class NoteEntryViewModel(
         }
     }
 
+    fun addReminder(timestamp: Long) {
+        val newReminder = Reminder(
+            noteId = 0,
+            remindAt = timestamp,
+            status = "PENDING"
+        )
+        _reminders.value += newReminder
+    }
+
+    // Eliminar recordatorio
+    fun deleteReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            // Si ya tiene ID, existe en la BD: hay que borrarlo y cancelar la alarma
+            if (reminder.id != 0) {
+                notesRepository.deleteReminder(reminder)
+                alarmScheduler.cancel(reminder)
+            }
+            // Lo quitamos de la lista visual
+            val currentList = _reminders.value.toMutableList()
+            currentList.remove(reminder)
+            _reminders.value = currentList
+        }
+    }
+
     fun saveNote() {
         viewModelScope.launch {
             val note = Note(
@@ -87,24 +118,27 @@ class NoteEntryViewModel(
                 notesRepository.insertNote(note)
             }
 
-            // 2. Programar la alarma si es una tarea y tiene fecha
-            if (note.isTask && note.dueDateTime != null) {
-                // Creamos una copia de la nota con el ID real (por si era nueva y note.id era 0)
-                val finalNote = note.copy(id = noteId.toInt())
-
-                try {
-                    alarmScheduler.schedule(finalNote)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            } else {
-                val finalNote = note.copy(id = noteId.toInt())
-                alarmScheduler.cancel(finalNote)
-            }
-
             _attachments.value.forEach { att ->
                 if (att.id == 0) {
                     notesRepository.addAttachment(att.copy(noteId = noteId.toInt()))
+                }
+            }
+
+            _reminders.value.forEach { reminder ->
+                if (reminder.id == 0) {
+                    // a) Insertar en BD para obtener el ID único
+                    val newReminderId = notesRepository.addReminder(
+                        reminder.copy(noteId = noteId.toInt())
+                    )
+
+                    // b) Programar la alarma usando el ID generado
+                    val savedReminder = reminder.copy(
+                        id = newReminderId.toInt(),
+                        noteId = noteId.toInt()
+                    )
+
+                    // Asumiendo que actualizaste AlarmScheduler para aceptar (Reminder, String)
+                    alarmScheduler.schedule(savedReminder, note.title)
                 }
             }
         }

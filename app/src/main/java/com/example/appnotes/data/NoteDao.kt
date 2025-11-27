@@ -19,6 +19,10 @@ interface NoteDao {
     @Query("SELECT * from notes WHERE id = :id")
     fun getNoteWithDetails(id: Int): Flow<NoteWithDetails?>
 
+    @Transaction
+    @Query("SELECT * from reminders ORDER BY remindAt DESC")
+    fun getAllReminders(): Flow<List<Reminder>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNote(note: Note): Long
 
@@ -31,7 +35,7 @@ interface NoteDao {
 
     //Reminders
     @Insert
-    suspend fun insertReminder(reminder: Reminder)
+    suspend fun insertReminder(reminder: Reminder): Long
 
     @Query("DELETE FROM reminders WHERE noteId = :noteId")
     suspend fun deleteRemindersByNoteId(noteId: Int)
@@ -45,5 +49,8 @@ interface NoteDao {
 
     @Delete
     suspend fun deleteAttachment(attachment: Attachment)
+
+    @Delete
+    suspend fun deleteReminder(reminder: Reminder)
 
 }

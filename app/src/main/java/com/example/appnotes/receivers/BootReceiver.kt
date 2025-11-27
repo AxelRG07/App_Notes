@@ -24,18 +24,17 @@ class BootReceiver : BroadcastReceiver() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val notes = repository.getAllNotes().first()
+                    val reminders = repository.getAllReminders().first()
 
                     val currentTime = System.currentTimeMillis()
 
-                    notes.forEach { n ->
-                        if (n.note.isTask &&
-                            n.note.dueDateTime != null &&
-                            n.note.dueDateTime > currentTime &&
-                            !n.note.isCompleted
-                        ) {
-                            alarmScheduler.schedule(n.note)
-                            Log.d("BootReceiver", "Alarma reprogramada: ${n.note.title}")
+                    reminders.forEach { r ->
+                        if (r != null && r.remindAt > currentTime) {
+                            val n = repository.getNote(r.noteId).first()
+                            if (n != null) {
+                                alarmScheduler.schedule(r, n.note.title)
+                                Log.d("BootReceiver", "Alarma reprogramada: ${n.note.title}")
+                            }
                         }
                     }
                 } catch (e: Exception) {

@@ -2,12 +2,10 @@ package com.example.appnotes.ui.note
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
-
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,22 +15,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -51,7 +44,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,29 +55,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.rememberAsyncImagePainter
 import com.example.appnotes.R
 import com.example.appnotes.data.Attachment
 import com.example.appnotes.ui.NoteEntryViewModelProvider
 import com.example.appnotes.ui.components.AttachmentViewer
 import com.example.appnotes.ui.components.AudioRecorderButton
-import com.example.appnotes.ui.components.RequestMediaPermissions
 import com.example.appnotes.ui.components.VideoCaptureButton
 import com.example.appnotes.util.createMediaFile
 import com.example.appnotes.util.getUriForFile
 import java.util.Calendar
-import java.util.jar.Manifest
+import android.Manifest
+import android.os.Build
+import android.widget.Toast
+import androidx.compose.material.icons.filled.Close
+import com.example.appnotes.data.Reminder
 
 @Composable
 fun NoteEntryScreen(
@@ -96,24 +87,34 @@ fun NoteEntryScreen(
 ) {
     val noteUiState by viewModel.noteUiState.collectAsState()
     val attachments by viewModel.attachments.collectAsState()
-
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (isGranted) {
-                // Permiso concedido
-            } else {
-                // Permiso denegado
-            }
-        }
-    )
-
+    val reminders by viewModel.reminders.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(
         noteId
     ) {
         if (noteId != null) {
             viewModel.loadNote(noteId)
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Si el usuario acepta ahora, guardamos automáticamente
+            if (viewModel.isValidNote()) {
+                viewModel.saveNote()
+                navigateBack()
+            }
+        } else {
+            // Si rechaza, mostramos aviso pero podrías decidir guardar igual sin alarma
+            Toast.makeText(context, "El recordatorio no sonará sin permisos", Toast.LENGTH_LONG).show()
+            // Opcional: Guardar de todas formas si quieres permitirlo
+            if (viewModel.isValidNote()) {
+                viewModel.saveNote()
+                navigateBack()
+            }
         }
     }
 
@@ -136,6 +137,22 @@ fun NoteEntryScreen(
                     },
                     onClick = {
                         if (viewModel.isValidNote()) {
+
+                            if (noteUiState.isTask && noteUiState.dueDateTime != null) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    val hasPerm = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.POST_NOTIFICATIONS
+                                    ) == PackageManager.PERMISSION_GRANTED
+
+                                    if (!hasPerm) {
+                                        // Si no tiene permiso, pedimos y DETENEMOS el guardado normal
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        return@ExtendedFloatingActionButton
+                                    }
+                                }
+                            }
+
                             viewModel.saveNote()
                             navigateBack()
                         }
@@ -146,8 +163,11 @@ fun NoteEntryScreen(
             NoteEntryForm(
                 noteUiState,
                 attachments = attachments,
+                reminders = reminders,
                 onAttachmentsChange = { viewModel.updateAttachments(it) },
+                onAddReminder = { viewModel.addReminder(it) },
                 onDeleteAttachment = { viewModel.deleteAttachment(it) },
+                onDeleteReminder = { viewModel.deleteReminder(it) },
                 onValueChange = viewModel::updateUiState,
                 modifier = Modifier.padding(innerPadding)
             )
@@ -181,8 +201,11 @@ fun NotesTopBar(
 fun NoteEntryForm(
     noteUiState: NoteUiState,
     attachments: List<Attachment>,
+    reminders: List<Reminder>,
     onAttachmentsChange: (List<Attachment>) -> Unit,
+    onAddReminder: (Long) -> Unit,
     onDeleteAttachment: (Attachment) -> Unit,
+    onDeleteReminder: (Reminder) -> Unit,
     onValueChange: (NoteUiState) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -192,11 +215,21 @@ fun NoteEntryForm(
     var showMediaSheet by remember { mutableStateOf(false) }
     var showAudioRecorder by remember { mutableStateOf(false) }
     var showVideoRecorder by remember { mutableStateOf(false) }
-    var permissionsGranted by remember { mutableStateOf(false) }
 
-    val requestPermissions = @Composable {
-        RequestMediaPermissions {
-            permissionsGranted = true
+    var permissionsGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val areGranted = result.values.all { it }
+        permissionsGranted = areGranted
+        if (!areGranted) {
+            Toast.makeText(context, "Se requieren permisos para usar la cámara/audio", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -249,6 +282,14 @@ fun NoteEntryForm(
         )
 
         ConvertToTaskCard(noteUiState, onValueChange)
+
+        if (noteUiState.isTask) {
+            RemindersSection(
+                reminders = reminders,
+                onAddReminder = onAddReminder,
+                onDeleteReminder = onDeleteReminder
+            )
+        }
 
         if (noteUiState.isTask) {
             val date = remember { mutableStateOf("") }
@@ -311,9 +352,8 @@ fun NoteEntryForm(
 
         Button(
             onClick = {
-                if (!permissionsGranted) {
-                    permissionsGranted = false
-                }
+                permissionsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                 showMediaSheet = true
             },
             modifier = Modifier.fillMaxWidth()
@@ -335,10 +375,22 @@ fun NoteEntryForm(
                         modifier = Modifier.padding(16.dp)
                     )
 
-                    Divider()
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     if (!permissionsGranted) {
-                        requestPermissions()
+                        Button(
+                            onClick = {
+                                permissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.CAMERA,
+                                        Manifest.permission.RECORD_AUDIO
+                                    )
+                                )
+                            },
+                            modifier = Modifier.padding(16.dp).fillMaxWidth()
+                        ) {
+                            Text("Habilitar cámara y micrófono")
+                        }
                     } else {
                         Row(
                             modifier = Modifier
@@ -413,7 +465,6 @@ fun NoteEntryForm(
                 showVideoRecorder = false
             }
         }
-
 
         val launcher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
@@ -595,6 +646,80 @@ fun ConvertToTaskCard(
                     onValueChange(noteUiState.copy(isTask = it))
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun RemindersSection(
+    reminders: List<Reminder>,
+    onAddReminder: (Long) -> Unit,
+    onDeleteReminder: (Reminder) -> Unit
+) {
+    val context = LocalContext.current
+    val calendar = remember { Calendar.getInstance() }
+
+    Column(modifier = Modifier.padding(12.dp)) {
+        Text("Recordatorios", style = MaterialTheme.typography.titleMedium)
+
+        // Lista de recordatorios agregados
+        reminders.forEach { reminder ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Formatear fecha bonito
+                val dateStr = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+                    .format(java.util.Date(reminder.remindAt))
+
+                Text(text = "⏰ $dateStr")
+
+                IconButton(onClick = { onDeleteReminder(reminder) }) {
+                    Icon(Icons.Default.Close, contentDescription = "Borrar recordatorio")
+                }
+            }
+        }
+
+        // Botón para agregar nuevo
+        Button(
+            onClick = {
+                // Lógica de DatePicker + TimePicker (anidada)
+                val now = Calendar.getInstance()
+
+                DatePickerDialog(context, { _, year, month, day ->
+                    //ACTUALIZAMOS AÑO, MES Y DÍA
+                    calendar.set(Calendar.YEAR, year)
+                    calendar.set(Calendar.MONTH, month)
+                    calendar.set(Calendar.DAY_OF_MONTH, day)
+
+                    TimePickerDialog(context, { _, hour, minute ->
+                        calendar.set(Calendar.HOUR_OF_DAY, hour)
+                        calendar.set(Calendar.MINUTE, minute)
+                        calendar.set(Calendar.SECOND, 0)
+                        calendar.set(Calendar.MILLISECOND, 0)
+
+                        if (calendar.timeInMillis <= System.currentTimeMillis()) {
+                            Toast.makeText(context, "La fecha debe ser futura", Toast.LENGTH_LONG).show()
+                        } else {
+                            onAddReminder(calendar.timeInMillis)
+                        }
+
+                    }, now.get(Calendar.HOUR_OF_DAY), // Hora inicial del diálogo
+                        now.get(Calendar.MINUTE),
+                        true
+                    ).show()
+
+                }, now.get(Calendar.YEAR), // Fecha inicial del diálogo
+                    now.get(Calendar.MONTH),
+                    now.get(Calendar.DAY_OF_MONTH)
+                ).show()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Agregar Recordatorio")
         }
     }
 }

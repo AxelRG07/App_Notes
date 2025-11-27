@@ -7,13 +7,14 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.example.appnotes.data.Note
+import com.example.appnotes.data.Reminder
 import com.example.appnotes.receivers.AlarmReceiver
 import java.time.Instant
 import java.time.ZoneId
 
 interface AlarmScheduler {
-    fun schedule(note: Note)
-    fun cancel(note: Note)
+    fun schedule(reminder: Reminder, noteTitle: String)
+    fun cancel(reminder: Reminder)
 }
 
 class AndroidAlarmScheduler(
@@ -22,8 +23,11 @@ class AndroidAlarmScheduler(
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
-    override fun schedule(note: Note) {
-        val dueTime = note.dueDateTime ?: return
+    override fun schedule(reminder: Reminder, noteTitle: String) {
+        val dueTime = reminder.remindAt
+
+        Log.d("AlarmScheduler", "--> Intentando programar alarma ID ${reminder.id}. Fecha: $dueTime vs Ahora: ${System.currentTimeMillis()}")
+
         if (dueTime <= System.currentTimeMillis()) {
             Log.w("AlarmScheduler", "La fecha ya pasó, no se puede programar alarma")
             return
@@ -32,27 +36,20 @@ class AndroidAlarmScheduler(
         // creamos el Intent que irá al Receiver
         // Usamos el ID de la nota para que sea único para cancelarlo/actualizarlo después
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra("EXTRA_MESSAGE", note.title) // Pasamos el título como mensaje
-            putExtra("EXTRA_NOTE_ID", note.id)
+            putExtra("EXTRA_MESSAGE", noteTitle) // Pasamos el título como mensaje
+            putExtra("EXTRA_NOTE_ID", reminder.noteId)
         }
 
         //convertir el Intent en PendingIntent
         // FLAG_UPDATE_CURRENT: Si ya existe una alarma para esta nota, actualiza los datos
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            note.id,
+            reminder.id,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        Log.d("AlarmScheduler", "Programando alarma para nota ${note.id} a las $dueTime")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                // permisos
-                return
-            }
-        }
+        Log.d("AlarmScheduler", "Programando alarma para nota ${reminder.id} a las $dueTime")
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
@@ -61,11 +58,11 @@ class AndroidAlarmScheduler(
         )
     }
 
-    override fun cancel(note: Note) {
+    override fun cancel(reminder: Reminder) {
         val intent = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            note.id,
+            reminder.id,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

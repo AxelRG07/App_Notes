@@ -15,13 +15,20 @@ import com.example.appnotes.ui.note.NoteEntryScreen
 @Composable
 fun NotesNavGraph(
     windowSizeClass: WindowSizeClass,
+    noteId: Int? = null,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
 
+    val startDestination = if (noteId != null) {
+        "${NoteDetailDestination.route}/$noteId"
+    } else {
+        HomeDestination.route
+    }
+
     NavHost(
         navController = navController,
-        startDestination = HomeDestination.route,
+        startDestination = startDestination,
         modifier = modifier
     ) {
         composable(route = HomeDestination.route) {

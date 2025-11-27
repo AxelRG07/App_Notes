@@ -6,6 +6,9 @@ class OfflineNotesRepository (private val noteDao: NoteDao) : NotesRepository {
     override fun getAllNotes(): Flow<List<NoteWithDetails>> =
         noteDao.getAllNotesWithDetails()
 
+    override fun getAllReminders(): Flow<List<Reminder>> =
+        noteDao.getAllReminders()
+
     override fun getNote(id: Int): Flow<NoteWithDetails?> =
         noteDao.getNoteWithDetails(id)
 
@@ -21,17 +24,15 @@ class OfflineNotesRepository (private val noteDao: NoteDao) : NotesRepository {
         noteDao.deleteNote(note)
     }
 
-    override suspend fun addReminder(reminder: Reminder) =
+    override suspend fun addReminder(reminder: Reminder) : Long =
         noteDao.insertReminder(reminder)
 
     override suspend fun addAttachment(attachment: Attachment) =
         noteDao.insertAttachment(attachment)
 
-    override suspend fun deleteRemindersByNoteId(noteId: Int) =
-        noteDao.deleteRemindersByNoteId(noteId)
+    override suspend fun deleteReminder(reminder: Reminder) =
+        noteDao.deleteReminder(reminder)
 
-    override suspend fun deleteAttachmentsByNoteId(noteId: Int) =
-        noteDao.deleteAttachmentsByNoteId(noteId)
 
     override suspend fun deleteAttachment(attachment: Attachment) =
         noteDao.deleteAttachment(attachment)
