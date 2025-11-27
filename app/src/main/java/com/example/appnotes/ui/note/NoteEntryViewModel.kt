@@ -126,10 +126,13 @@ class NoteEntryViewModel(
 
             _reminders.value.forEach { reminder ->
                 if (reminder.id == 0) {
-                    // a) Insertar en BD para obtener el ID único
                     val newReminderId = notesRepository.addReminder(
                         reminder.copy(noteId = noteId.toInt())
                     )
+
+                    note.isCompleted = false
+                    notesRepository.updateNote(note)
+
 
                     // b) Programar la alarma usando el ID generado
                     val savedReminder = reminder.copy(
@@ -137,7 +140,6 @@ class NoteEntryViewModel(
                         noteId = noteId.toInt()
                     )
 
-                    // Asumiendo que actualizaste AlarmScheduler para aceptar (Reminder, String)
                     alarmScheduler.schedule(savedReminder, note.title)
                 }
             }

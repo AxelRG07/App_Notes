@@ -89,13 +89,15 @@ fun NoteDetailScreen(
         },
         floatingActionButton = {
             noteWithDetails?.let {
-                ExtendedFloatingActionButton(
-                    onClick = { viewModel.toggleCompleted() },
-                    text = { Text(if (it.note.isCompleted) stringResource(R.string.marcar_pendiente) else stringResource(
-                        R.string.marcar_completada
-                    )) },
-                    icon = { Icon(Icons.Default.FavoriteBorder, contentDescription = null) }
-                )
+                if (!it.note.isCompleted) {
+                    ExtendedFloatingActionButton(
+                        onClick = { viewModel.toggleCompleted() },
+                        text = { Text(stringResource(
+                            R.string.marcar_completada
+                        )) },
+                        icon = { Icon(Icons.Default.FavoriteBorder, contentDescription = null) }
+                    )
+                }
             }
         }
     ) { innerPadding ->

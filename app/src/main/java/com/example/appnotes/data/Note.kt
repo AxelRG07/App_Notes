@@ -11,6 +11,6 @@ data class Note(
     val description: String,
     val isTask: Boolean,
     val dueDateTime: Long? = null,
-    val isCompleted: Boolean = false,
+    var isCompleted: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

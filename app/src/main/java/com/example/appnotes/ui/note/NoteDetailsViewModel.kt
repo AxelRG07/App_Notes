@@ -5,12 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.appnotes.data.Attachment
 import com.example.appnotes.data.NoteWithDetails
 import com.example.appnotes.data.NotesRepository
+import com.example.appnotes.util.AlarmScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class NoteDetailsViewModel ( private val notesRepository: NotesRepository ) : ViewModel() {
+class NoteDetailsViewModel (
+    private val notesRepository: NotesRepository,
+    private val alarmScheduler: AlarmScheduler
+) : ViewModel() {
     private val _noteUiState = MutableStateFlow<NoteWithDetails?>(null)
     val noteUiState: StateFlow<NoteWithDetails?> = _noteUiState.asStateFlow()
 
@@ -38,14 +42,33 @@ class NoteDetailsViewModel ( private val notesRepository: NotesRepository ) : Vi
         }
     }
 
+
     fun toggleCompleted() {
-        _noteUiState.value?.note?.let { note ->
-            val updated = note.copy(isCompleted = !note.isCompleted)
-            viewModelScope.launch {
-                notesRepository.updateNote(updated)
+        // Obtenemos el estado actual completo (Nota + Recordatorios)
+        val currentDetails = _noteUiState.value ?: return
+        val note = currentDetails.note
+        val reminders = currentDetails.reminders
+
+        // Invertimos el valor actual
+        val newCompletedStatus = !note.isCompleted
+        val updatedNote = note.copy(isCompleted = newCompletedStatus)
+
+        viewModelScope.launch {
+            // 1. Si estamos marcando como COMPLETADA (true), cancelamos las alarmas pendientes
+            if (newCompletedStatus) {
+                reminders.forEach { reminder ->
+                    viewModelScope.launch {
+                        notesRepository.deleteReminder(reminder)
+                        alarmScheduler.cancel(reminder)
+                    }
+                }
             }
-            _noteUiState.value = _noteUiState.value?.copy(note = updated)
+
+            // Actualizamos la nota en la BD
+            notesRepository.updateNote(updatedNote)
         }
+
+        _noteUiState.value = currentDetails.copy(note = updatedNote)
     }
 
 }

@@ -36,8 +36,10 @@ object NoteDetailsViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
             val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as NotesApplication
+            val alarmScheduler = AndroidAlarmScheduler(application.applicationContext)
+
             val repository = application.container.notesRepository
-            NoteDetailsViewModel(repository)
+            NoteDetailsViewModel(repository, alarmScheduler = alarmScheduler)
         }
     }
 }

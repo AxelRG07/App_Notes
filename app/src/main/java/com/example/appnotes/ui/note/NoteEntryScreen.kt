@@ -108,9 +108,7 @@ fun NoteEntryScreen(
                 navigateBack()
             }
         } else {
-            // Si rechaza, mostramos aviso pero podrías decidir guardar igual sin alarma
             Toast.makeText(context, "El recordatorio no sonará sin permisos", Toast.LENGTH_LONG).show()
-            // Opcional: Guardar de todas formas si quieres permitirlo
             if (viewModel.isValidNote()) {
                 viewModel.saveNote()
                 navigateBack()
@@ -291,65 +289,6 @@ fun NoteEntryForm(
             )
         }
 
-        if (noteUiState.isTask) {
-            val date = remember { mutableStateOf("") }
-            val time = remember { mutableStateOf("") }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                Button(
-                    onClick = {
-                        val datePicker = DatePickerDialog(
-                            context,
-                            { _, year, month, day ->
-                                calendar.set(year, month, day)
-                                date.value = "$day/${month + 1}/$year"
-                                onValueChange(noteUiState.copy(dueDateTime = calendar.timeInMillis))
-                            },
-                            calendar.get(Calendar.YEAR),
-                            calendar.get(Calendar.MONTH),
-                            calendar.get(Calendar.DAY_OF_MONTH)
-                        )
-                        datePicker.show()
-                    }
-                ) {
-                    Text(
-                        if (date.value.isEmpty()) stringResource(R.string.seleccionar_fecha) else stringResource(
-                            R.string.texto_fecha, date.value
-                        )
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        val timePicker = TimePickerDialog(
-                            context,
-                            { _, hour, minute ->
-                                calendar.set(Calendar.HOUR_OF_DAY, hour)
-                                calendar.set(Calendar.MINUTE, minute)
-                                time.value = "%02d:%02d".format(hour, minute)
-                                onValueChange(noteUiState.copy(dueDateTime = calendar.timeInMillis))
-                            },
-                            calendar.get(Calendar.HOUR_OF_DAY),
-                            calendar.get(Calendar.MINUTE),
-                            true
-                        )
-                        timePicker.show()
-                    }
-                ) {
-                    Text(
-                        if (time.value.isEmpty()) stringResource(R.string.seleccionar_hora) else stringResource(
-                            R.string.texto_hora, time.value
-                        )
-                    )
-                }
-            }
-        }
-
         Button(
             onClick = {
                 permissionsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
@@ -475,7 +414,7 @@ fun NoteEntryForm(
                     t.startsWith("image/") -> "image"
                     t.startsWith("video/") -> "video"
                     t.startsWith("audio/") -> "audio"
-                    else -> "file"
+                    else -> "document"
                 }
                 val newAttachment = Attachment(
                     noteId = 0,
@@ -671,7 +610,6 @@ fun RemindersSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Formatear fecha bonito
                 val dateStr = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
                     .format(java.util.Date(reminder.remindAt))
 
@@ -686,7 +624,6 @@ fun RemindersSection(
         // Botón para agregar nuevo
         Button(
             onClick = {
-                // Lógica de DatePicker + TimePicker (anidada)
                 val now = Calendar.getInstance()
 
                 DatePickerDialog(context, { _, year, month, day ->

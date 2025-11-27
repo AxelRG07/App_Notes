@@ -1,11 +1,13 @@
 package com.example.appnotes.ui.components
 
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +31,8 @@ import com.example.appnotes.data.Attachment
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -51,6 +56,8 @@ fun AttachmentViewer(attachment: Attachment, onDelete: () -> Unit) {
             "image" -> ImageViewer(uri = attachment.uri, onDelete = onDelete)
             "video" -> VideoViewer(uri = attachment.uri, onDelete = onDelete)
             "audio" -> AudioPlayer(uri = attachment.uri, onDelete = onDelete)
+            else -> DocumentViewer(uri = attachment.uri, onDelete = onDelete)
+
         }
     }
 }
@@ -165,6 +172,83 @@ fun ImageViewer(uri: String, onDelete: () -> Unit) {
                 .align(Alignment.TopEnd)
                 .padding(8.dp)
         )
+    }
+}
+
+// --- Función Helper para abrir documentos ---
+fun openDocument(context: Context, uriString: String) {
+    try {
+        val uri = Uri.parse(uriString)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            // Detectamos el tipo MIME automáticamente
+            val mimeType = context.contentResolver.getType(uri) ?: "*/*"
+            setDataAndType(uri, mimeType)
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "No hay app para abrir este archivo", Toast.LENGTH_SHORT).show()
+    }
+}
+
+// --- Visores ---
+
+// NUEVO: Visor de Documentos
+@Composable
+fun DocumentViewer(uri: String, onDelete: () -> Unit) {
+    val context = LocalContext.current
+
+    // Intentamos obtener el nombre del archivo (opcional, lógica simple)
+    val fileName = remember(uri) {
+        try {
+            Uri.parse(uri).lastPathSegment ?: "Documento"
+        } catch (e: Exception) { "Documento adjunto" }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { openDocument(context, uri) } // CLIC PARA ABRIR
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Icono grande de documento
+        Icon(
+            imageVector = Icons.Default.Description,
+            contentDescription = "Documento",
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Documento Adjunto",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            Text(
+                text = fileName,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "Toca para abrir",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Eliminar",
+                tint = MaterialTheme.colorScheme.error
+            )
+        }
     }
 }
 
