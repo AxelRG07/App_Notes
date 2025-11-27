@@ -23,25 +23,24 @@ class AndroidAlarmScheduler(
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
     override fun schedule(note: Note) {
-        // 1. Validamos que haya una fecha futura
         val dueTime = note.dueDateTime ?: return
         if (dueTime <= System.currentTimeMillis()) {
             Log.w("AlarmScheduler", "La fecha ya pasó, no se puede programar alarma")
             return
         }
 
-        // 2. Creamos el Intent que irá al Receiver
-        // Usamos el ID de la nota para que sea único y podamos cancelarlo/actualizarlo después
+        // creamos el Intent que irá al Receiver
+        // Usamos el ID de la nota para que sea único para cancelarlo/actualizarlo después
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("EXTRA_MESSAGE", note.title) // Pasamos el título como mensaje
             putExtra("EXTRA_NOTE_ID", note.id)
         }
 
-        // 3. Convertimos el Intent en PendingIntent
+        //convertir el Intent en PendingIntent
         // FLAG_UPDATE_CURRENT: Si ya existe una alarma para esta nota, actualiza los datos
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            note.id, // ID único por nota
+            note.id,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

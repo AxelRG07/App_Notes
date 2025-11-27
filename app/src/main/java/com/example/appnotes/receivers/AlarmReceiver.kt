@@ -21,7 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val notification = NotificationCompat.Builder(context, NotesApplication.NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm) // Asegúrate de tener un icono válido aquí
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("Recordatorio de Nota")
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
